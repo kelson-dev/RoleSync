@@ -120,10 +120,8 @@ async Task BackgroundUpdate()
                     {
                         var followUser = await followGuild.GetUserAsync(sourceUser.Id);
 
-                        if (!ContainsRoleId(followUser.RoleIds, subscription.FollowingRoleId))
-                        {
+                        if (followUser is not null && !ContainsRoleId(followUser.RoleIds, subscription.FollowingRoleId))
                             await TryAndIgnoreError(() => followUser.AddRoleAsync(followRole));
-                        }
                     }
                 }
                 await ExtraPaginationDelay();
@@ -138,7 +136,7 @@ async Task BackgroundUpdate()
                     if (ContainsRoleId(followUser.RoleIds, followRole.Id))
                     {
                         var sourceUser = await sourceGuild.GetUserAsync(followUser.Id);
-                        if (!ContainsRoleId(sourceUser.RoleIds, sourceRole.Id))
+                        if (sourceUser is not null && !ContainsRoleId(sourceUser.RoleIds, sourceRole.Id))
                             await TryAndIgnoreError(() => followUser.RemoveRoleAsync(followRole));
                     }
                 }
@@ -150,6 +148,8 @@ async Task BackgroundUpdate()
 
 bool ContainsRoleId(IReadOnlyCollection<ulong> roles, ulong roleId)
 {
+    if (roles is null)
+        return false;
     foreach (var role in roles)
         if (role == roleId)
             return true;
