@@ -10,7 +10,7 @@
 		<StaticallyLinked>true</StaticallyLinked>
 		<PublishTrimmed>true</PublishTrimmed>
 		<Version>1.0.1.0</Version>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<InvariantGlobalization>false</InvariantGlobalization>
 	</PropertyGroup>
 
 
