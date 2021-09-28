@@ -1,0 +1,14 @@
+﻿global using System;
+global using System.IO;
+global using System.Linq;
+global using System.Text.Json;
+global using System.Text.Json.Serialization;
+global using System.Threading.Tasks;
+global using System.Collections.Concurrent;
+global using System.Collections.Generic;
+global using System.Collections.Immutable;
+global using static System.Console;
+global using static System.Environment;
+global using Discord;
+global using Discord.Rest;
+global using Discord.WebSocket;
