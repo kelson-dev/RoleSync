@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<LangVersion>preview</LangVersion>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PublishSingleFile>true</PublishSingleFile>
+		<StaticallyLinked>true</StaticallyLinked>
+		<PublishTrimmed>true</PublishTrimmed>
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+		<Version>1.0.1.0</Version>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+
+	<ItemGroup>
+		<PackageReference Include="Discord.Net" Version="2.4.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0-preview.4.21253.7" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <Folder Include="Configurations\" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <None Update="Configurations\*">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+</Project>

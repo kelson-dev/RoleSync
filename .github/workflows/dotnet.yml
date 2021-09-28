@@ -1,0 +1,33 @@
+name: Deployment
+
+on:
+  push:
+    branches: [ deploy ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DO_REGISTRY_TOKEN }}
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.100-rc.1.21463.6
+    - name: Publish
+      run: cd ./Kelson.RoleSyncBot/ && dotnet publish -c Release -r linux-musl-x64
+    - name: Image
+      run: cd ./Kelson.RoleSyncBot/ && docker build . -t kelson/tensor:latest
+    - name: Install doctl 
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DO_REGISTRY_TOKEN }}
+    - name: Dotctl Login
+      run: doctl registry login --expiry-seconds 600
+    - name: Tag image 
+      run: docker tag kelson/tensor:latest registry.digitalocean.com/kelson-registry/tensor:latest
+    - name: Push image to DO Container Registry 
+      run: docker push registry.digitalocean.com/kelson-registry/tensor:latest
