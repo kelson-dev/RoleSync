@@ -9,7 +9,7 @@
 		<PublishSingleFile>true</PublishSingleFile>
 		<StaticallyLinked>true</StaticallyLinked>
 		<PublishTrimmed>true</PublishTrimmed>
-		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+		<InvariantGlobalization>true</InvariantGlobalization>
 		<Version>1.0.1.0</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
