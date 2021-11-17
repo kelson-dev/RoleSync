@@ -16,7 +16,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.100-rc.1.21463.6
+        dotnet-version: 6.0.100
     - name: Install doctl 
       uses: digitalocean/action-doctl@v2
       with:

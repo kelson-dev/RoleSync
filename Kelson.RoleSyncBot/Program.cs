@@ -10,7 +10,7 @@ string key = GetEnvironmentVariable("credentials_token")
 BotConfig config = JsonSerializer.Deserialize<BotConfig>(
     File.ReadAllText(
         Path.Combine(configFolder.FullName, "config.json")),
-    Json.Default.BotConfig)!;
+    TensorJson.Default.BotConfig)!;
 
 ConcurrentDictionary<ulong, ImmutableList<RoleFollowConfig>> followToConfig = new();
 ConcurrentDictionary<ulong, ImmutableList<RoleFollowConfig>> sourceToConfig = new();
@@ -25,7 +25,7 @@ await client.LoginAsync(TokenType.Bot, key);
 
 var guilds = await client.Rest.GetGuildsAsync(false);
 
-foreach (var followConfig in config.Followers)
+foreach (var followConfig in (config.Followers ?? Enumerable.Empty<RoleFollowConfig>()))
 {
     if (await IsFollowConfigValid(followConfig))
     {
@@ -89,6 +89,7 @@ async Task BackgroundUpdate()
 #if RELEASE
     await Task.Delay(TimeSpan.FromSeconds(30)); // minimum delay in release builds
 #endif
+    DateTimeOffset start = DateTimeOffset.UtcNow;
     WriteLine($"Background sync check [{DateTimeOffset.UtcNow}]");
     foreach (var configs in followToConfig.Values)
     {
@@ -111,39 +112,66 @@ async Task BackgroundUpdate()
             if (sourceRole == null)
                 continue;
 
+            WriteLine($"From: {sourceGuild.Name} @{sourceRole.Name} -- To: {followGuild.Name} {followRole.Name}");
+
             var sourceRestrictedChannel = await sourceGuild.GetTextChannelAsync(subscription.SourceRestrictedChannelId);
+            Trace("Scanning #{0} in {1} for additions in {2}", sourceRestrictedChannel.Name, sourceGuild.Name, followGuild.Name);
             await foreach (var page in sourceRestrictedChannel.GetUsersAsync())
             {
                 foreach (var sourceUser in page)
                 {
+                    Trace("Checking {0} in {1}", sourceUser.Nickname ?? sourceUser.Username, sourceGuild.Name);
                     if (ContainsRoleId(sourceUser.RoleIds, subscription.SourceRoleId))
                     {
                         var followUser = await followGuild.GetUserAsync(sourceUser.Id);
-
-                        if (followUser is not null && !ContainsRoleId(followUser.RoleIds, subscription.FollowingRoleId))
-                            await TryAndIgnoreError(() => followUser.AddRoleAsync(followRole));
+                        if (followUser is not null)
+                        {
+                            Trace("Found as {0} in {1}", followUser.Nickname ?? followUser.Username, followGuild.Name);
+                            if (!ContainsRoleId(followUser.RoleIds, subscription.FollowingRoleId))
+                                await TryAndIgnoreError(() =>
+                                {
+                                    WriteLine("Adding @{0} in {1}", followRole.Name, followGuild.Name);
+                                    return followUser.AddRoleAsync(followRole);
+                                });
+                        }
                     }
                 }
+                Trace("Delay");
                 await ExtraPaginationDelay();
             }
+            Trace("Completed additions");
 
             var followRestrictedChannel = await followGuild.GetTextChannelAsync(subscription.FollowingRestrictedChannelId);
+            Trace("Scanning #{0} in {1} for removals from {2}", followRestrictedChannel.Name, followGuild.Name, sourceGuild.Name);
             await foreach (var page in followRestrictedChannel.GetUsersAsync())
             {
                 var userArray = page.ToArray();
                 foreach (var followUser in userArray)
                 {
+                    Trace("Checking {0} in {1}", followUser.Nickname ?? followUser.Username, followGuild.Name);
                     if (ContainsRoleId(followUser.RoleIds, followRole.Id))
                     {
                         var sourceUser = await sourceGuild.GetUserAsync(followUser.Id);
-                        if (sourceUser is not null && !ContainsRoleId(sourceUser.RoleIds, sourceRole.Id))
-                            await TryAndIgnoreError(() => followUser.RemoveRoleAsync(followRole));
+                        if (sourceUser is not null)
+                        {
+                            Trace("Found as {0} in {1}", sourceUser.Nickname ?? sourceUser.Username, sourceGuild.Name);
+                            if (!ContainsRoleId(sourceUser.RoleIds, sourceRole.Id))
+                                await TryAndIgnoreError(() =>
+                                {
+                                    Trace("Removing @{0} in {1}", followRole.Name, followGuild.Name);
+                                    return followUser.RemoveRoleAsync(followRole);
+                                });
+                        }
                     }
                 }
+                Trace("Delay");
                 await ExtraPaginationDelay();
             }
+
+            Trace("Completed removals");
         }
     }
+    Trace($"Background update completed in {DateTimeOffset.UtcNow - start}");
 }
 
 bool ContainsRoleId(IReadOnlyCollection<ulong> roles, ulong roleId)
@@ -198,23 +226,34 @@ async Task TryAndIgnoreError(Func<Task> task)
     }
 }
 
+void Trace(string messageTemplate, params object[] args)
+{
+    if (config.Trace)
+        WriteLine($"[{DateTimeOffset.UtcNow}] [{DateTimeOffset.Now}]" + string.Format(messageTemplate, args));
+}
+
 // Pads out the delay between user page requests to stay way clear of any rate limits
 Task ExtraPaginationDelay() => Task.Delay(TimeSpan.FromMilliseconds(config.UserPaginationDelayMs));
 
-internal record BotConfig(
-    ulong BotId,
-    int UserPaginationDelayMs,
-    int BackgroundSyncDelayMinutes,
-    RoleFollowConfig[] Followers);
+internal class BotConfig
+{ 
+    public ulong BotId { get; set; }
+    public int UserPaginationDelayMs { get; set; }
+    public int BackgroundSyncDelayMinutes { get; set; }
+    public bool Trace { get; set; } = false;
+    public RoleFollowConfig[]? Followers { get; set; }
+}
 
-internal record RoleFollowConfig(
-    ulong SourceServerId,
-    ulong SourceRoleId,
-    ulong SourceRestrictedChannelId,
-    ulong FollowingServerId,
-    ulong FollowingRoleId,
-    ulong FollowingRestrictedChannelId);
+internal class RoleFollowConfig
+{
+    public ulong SourceServerId { get; set; }
+    public ulong SourceRoleId { get; set; }
+    public ulong SourceRestrictedChannelId { get; set; }
+    public ulong FollowingServerId { get; set; }
+    public ulong FollowingRoleId { get; set; }
+    public ulong FollowingRestrictedChannelId { get; set; }
+}
 
 [JsonSerializable(typeof(BotConfig))]
 [JsonSerializable(typeof(RoleFollowConfig))]
-internal partial class Json : JsonSerializerContext { }
+internal partial class TensorJson : JsonSerializerContext { }
