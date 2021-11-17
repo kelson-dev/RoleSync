@@ -120,7 +120,7 @@ async Task BackgroundUpdate()
             {
                 foreach (var sourceUser in page)
                 {
-                    Trace("Checking {0} in {1}", sourceUser.Nickname ?? sourceUser.Username, sourceGuild.Name);
+                    Trace("Checking user {0} ({1})", sourceUser.Id, sourceUser.Nickname ?? sourceUser.Username);
                     if (ContainsRoleId(sourceUser.RoleIds, subscription.SourceRoleId))
                     {
                         var followUser = await followGuild.GetUserAsync(sourceUser.Id);
@@ -148,7 +148,7 @@ async Task BackgroundUpdate()
                 var userArray = page.ToArray();
                 foreach (var followUser in userArray)
                 {
-                    Trace("Checking {0} in {1}", followUser.Nickname ?? followUser.Username, followGuild.Name);
+                    Trace("Checking user {0} ({1})", followUser.Id, followUser.Nickname ?? followUser.Username);
                     if (ContainsRoleId(followUser.RoleIds, followRole.Id))
                     {
                         var sourceUser = await sourceGuild.GetUserAsync(followUser.Id);
@@ -229,7 +229,7 @@ async Task TryAndIgnoreError(Func<Task> task)
 void Trace(string messageTemplate, params object[] args)
 {
     if (config.Trace)
-        WriteLine($"[{DateTimeOffset.UtcNow}] [{DateTimeOffset.Now}]" + string.Format(messageTemplate, args));
+        WriteLine($"[{DateTimeOffset.UtcNow}] " + string.Format(messageTemplate, args));
 }
 
 // Pads out the delay between user page requests to stay way clear of any rate limits
